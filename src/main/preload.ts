@@ -9,7 +9,9 @@ export type Channels =
   | 'clear-environment'
   | 'clear-environment-reply'
   | 'launch-stable-diffusion'
-  | 'execution-messages';
+  | 'execution-messages'
+  | 'view-app-data'
+  | 'view-app-data-reply';
 
 const electronHandler = {
   ipcRenderer: {

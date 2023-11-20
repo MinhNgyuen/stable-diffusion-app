@@ -1,6 +1,6 @@
 {
   "name": "stable-diffusion-app",
-  "version": "0.0.2",
+  "version": "0.0.3",
   "description": "An application to install and run automatic1111 stable diffusion web ui",
   "keywords": [
     "electron",
@@ -94,6 +94,7 @@
     }
   },
   "dependencies": {
+    "axios": "^1.6.1",
     "electron-debug": "^3.2.0",
     "electron-log": "^4.4.8",
     "electron-squirrel-startup": "^1.0.0",
@@ -184,7 +185,17 @@
     "files": [
       "dist",
       "node_modules",
-      "package.json"
+      "package.json",
+      "assets/**/*"
+    ],
+    "extraFiles": [
+      {
+        "from": "src/main/extras",
+        "to": "extras",
+        "filter": [
+          "**/*"
+        ]
+      }
     ],
     "afterSign": ".erb/scripts/notarize.js",
     "mac": {
@@ -217,8 +228,23 @@
     },
     "win": {
       "target": [
-        "nsis"
-      ]
+        {
+          "target": "msi",
+          "arch": [
+            "x64"
+          ]
+        }
+      ],
+      "artifactName": "${productName} Installer.${ext}",
+      "icon": "assets/icon.ico"
+    },
+    "msi": {
+      "oneClick": true,
+      "runAfterFinish": true,
+      "perMachine": false,
+      "upgradeCode": "6eafa549-1c13-484d-a719-f90928725558",
+      "createDesktopShortcut": true,
+      "createStartMenuShortcut": true
     },
     "linux": {
       "target": [

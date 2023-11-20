@@ -12,12 +12,22 @@ import path from 'path';
 import { app, BrowserWindow, shell, ipcMain, IpcMainEvent } from 'electron';
 import { autoUpdater } from 'electron-updater';
 import log from 'electron-log';
-import { ExecException, exec, spawn } from 'child_process';
-import { simpleGit } from 'simple-git';
-import sudo from 'sudo-prompt';
+import { spawn } from 'child_process';
 import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
-import { Channel } from 'diagnostics_channel';
+import {
+  checkAndInstallPython,
+  uninstallPythonViaLocalBinary,
+} from '../components/InstallPython';
+import {
+  checkAndInstallGit,
+  uninstallGitViaLocalBinary,
+} from '../components/InstallGit';
+import {
+  cloneStableDiffusionWebUI,
+  deleteStableDiffusionWebUI,
+} from '../components/InstallStableDiffusionWebUI';
+import { pythonInstallerPath, sdwebuiPath } from './constants';
 
 class AppUpdater {
   constructor() {
@@ -29,169 +39,53 @@ class AppUpdater {
 
 let mainWindow: BrowserWindow | null = null;
 
-const checkAndInstallChocolatey = async (
-  callback: (message: string) => void,
-) => {
-  const chocoCheckCommand = 'choco --version';
-  const chocoInstallCommand =
-    "Set-ExecutionPolicy Bypass -Scope Process -Force; [System.Net.ServicePointManager]::SecurityProtocol = [System.Net.ServicePointManager]::SecurityProtocol -bor 3072; iex ((New-Object System.Net.WebClient).DownloadString('https://community.chocolatey.org/install.ps1'))";
-
-  callback('Checking if Chocolatey is installed');
-  exec(chocoCheckCommand, (error: ExecException | null) => {
-    if (error) {
-      console.error(`Chocolatey is not installed. Installing Chocolatey...`);
-      callback(`Chocolatey is not installed. Installing Chocolatey...`);
-      exec(
-        chocoInstallCommand,
-        (execError: ExecException | null, execStdout: string) => {
-          if (error) {
-            console.error(`exec error: ${execError}`);
-            callback(`exec error: ${execError}`);
-            return;
-          }
-          console.log(`Chocolatey installed successfully: ${execStdout}`);
-          callback(`Chocolatey installed successfully: ${execStdout}`);
-        },
-      );
-    } else {
-      console.log(`Chocolatey is already installed.`);
-      callback(`Chocolatey is already installed.`);
-    }
-  });
-};
-
-const installPython = async (callback: (message: string) => void) => {
-  const requiredVersion = '3.10.6';
-  const pythonInstallCommand = `choco install python --version=${requiredVersion} --allow-downgrade -force`;
-
-  sudo.exec(
-    pythonInstallCommand,
-    {
-      name: 'Your App Name',
-      icns: 'assets/icon.icns', // (optional) path to .icns file
-    },
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error(
-          `Python installation process exited with error: ${error}`,
-        );
-        callback(`Python installation process exited with error: ${error}`);
-        return;
-      }
-
-      if (stderr) {
-        console.error(`Python installation process stderr: ${stderr}`);
-        callback(`Python installation process stderr: ${stderr}`);
-        return;
-      }
-
-      console.log('Python installed successfully', stdout);
-      callback(`Python installed successfully ${stdout}`);
-    },
-  );
-};
-
-const checkAndInstallPython = async (callback: (message: string) => void) => {
-  const requiredVersion = '3.10.6';
-  const pythonCheckCommand = 'py';
-  const pythonCheckArgs = ['-3.10', '--version'];
-
-  const checkProcess = spawn(pythonCheckCommand, pythonCheckArgs, {
-    stdio: 'pipe',
-  });
-
-  checkProcess.stdout.on('data', async (data) => {
-    const versionString = data.toString().trim();
-    if (versionString.includes(requiredVersion)) {
-      console.log(`Python ${requiredVersion} found`);
-      callback(`Python ${requiredVersion} found`);
-    } else {
-      console.log(`Python ${requiredVersion} not found`);
-      callback(`Python ${requiredVersion} not found`);
-      await installPython(callback);
-    }
-  });
-
-  checkProcess.stderr.on('data', (data) => {
-    console.error(`stderr: ${data}`);
-    callback(`stderr: ${data}`);
-  });
-
-  checkProcess.on('error', (error) => {
-    console.error(`Failed to start subprocess: ${error}`);
-    callback(`Failed to start subprocess: ${error}`);
-  });
-};
-
-const cloneStableDiffusionWebUI = async (
-  callback: (message: string) => void,
-) => {
-  try {
-    await simpleGit().clone(
-      'https://github.com/AUTOMATIC1111/stable-diffusion-webui',
-    );
-    console.log('Installed stable diffusion web ui');
-    callback('Installed stable diffusion web ui');
-  } catch (error) {
-    console.error('Failed to clone stable diffusion web ui:', error);
-    callback(`Failed to clone stable diffusion web ui: ${error}`);
-  }
-};
-
-// const uninstallChocolatey = () => {
-//   const chocolateyUninstallCommand = 'choco uninstall chocolatey';
-//   exec('choco --version', (chocoError) => {
-//     if (!chocoError) {
-//       console.log('attempting to uninstall choco');
-//       // If Chocolatey is installed, uninstall it
-//       exec(chocolateyUninstallCommand, (chocoUninstallError) => {
-//         if (chocoUninstallError) {
-//           console.error(
-//             `Error uninstalling Chocolatey: ${chocoUninstallError}`,
-//           );
-//         } else {
-//           console.log('Chocolatey uninstalled successfully');
-//         }
-//       });
-//     } else {
-//       console.log('Choco error', chocoError);
-//     }
-//   });
-// };
-
-const deleteStableDiffusionWebUI = () => {
-  const deleteCommand = 'rmdir /s /q stable-diffusion-webui';
-  sudo.exec(
-    deleteCommand,
-    {
-      name: 'Your App Name',
-      icns: 'assets/icon.icns', // (optional) path to .icns file
-    },
-    (error, stdout, stderr) => {
-      if (error) {
-        console.error(`Error removing stable diffusion web ui: ${error}`);
-        return;
-      }
-
-      if (stderr) {
-        console.error(`Stderr removing stable diffusion web ui: ${stderr}`);
-        return;
-      }
-
-      console.log(stdout);
-    },
-  );
-};
-
-const clearEnvironment = () => {
-  console.log('starting Clear Environment');
-  // uninstallChocolatey());
-  deleteStableDiffusionWebUI();
-  console.log('completed clear environment');
-};
-
 const sendUpdates = (event: IpcMainEvent, channel: string, message: string) => {
   event.reply(channel, message);
+};
+
+const clearEnvironment = async (callback: (message: string) => void) => {
+  console.log('starting Clear Environment');
+  // uninstallChocolatey());
+  const res: string[] = [];
+  const errs: Error[] = [];
+  await deleteStableDiffusionWebUI(callback)
+    .then((msg: string) => {
+      res.push(msg);
+    })
+    .catch((err: Error) => {
+      errs.push(err);
+    });
+  await uninstallPythonViaLocalBinary(pythonInstallerPath, callback)
+    .then((msg: string) => {
+      res.push(msg);
+    })
+    .catch((err: Error) => {
+      errs.push(err);
+    });
+  await uninstallGitViaLocalBinary(callback)
+    .then((msg: string) => {
+      res.push(msg);
+    })
+    .catch((err: Error) => {
+      errs.push(err);
+    });
+  callback(res.join('\n'));
+};
+
+const openUserDataInExplorer = () => {
+  shell
+    .openPath(sdwebuiPath)
+    .then((err) => {
+      if (err) {
+        console.error('Failed to open file explorer:', err);
+      }
+    })
+    .catch((error) => {
+      console.error(
+        'An error occurred while opening the file explorer:',
+        error,
+      );
+    });
 };
 
 function launchStableDiffusionWebUI() {
@@ -202,7 +96,7 @@ function launchStableDiffusionWebUI() {
       'start',
       'cmd.exe',
       '/k',
-      'chdir ./stable-diffusion-webui && py -3.10 -m venv venv && .\\venv\\Scripts\\activate && webui-user.bat',
+      `chdir ${sdwebuiPath} && py -3.10 -m venv venv && .\\venv\\Scripts\\activate && webui-user.bat`,
     ],
     {
       detached: true,
@@ -221,32 +115,36 @@ ipcMain.on('ipc-example', async (event, arg) => {
 });
 
 ipcMain.on('install-stable-diffusion', async (event) => {
-  await checkAndInstallChocolatey((message: string) =>
+  await checkAndInstallGit((message: string) => {
+    sendUpdates(event, 'execution-messages', message);
+  });
+  await checkAndInstallPython((message: string) =>
     sendUpdates(event, 'execution-messages', message),
   );
   await cloneStableDiffusionWebUI((message: string) =>
     sendUpdates(event, 'execution-messages', message),
   );
-  await checkAndInstallPython((message: string) =>
-    sendUpdates(event, 'execution-messages', message),
-  );
-  event.reply(
-    'install-stable-diffusion-reply',
-    'message received, starting installation now',
-  );
+  event.reply('install-stable-diffusion-reply', 'Installation complete');
+});
+
+ipcMain.on('launch-stable-diffusion', async () => {
+  launchStableDiffusionWebUI();
 });
 
 ipcMain.on('clear-environment', async (event) => {
-  console.log('attempting to clear environment');
-  clearEnvironment();
+  clearEnvironment((message: string) => {
+    sendUpdates(event, 'execution-messages', message);
+  });
   event.reply(
     'clear-environment-reply',
     'received message to clear environment',
   );
 });
 
-ipcMain.on('launch-stable-diffusion', async () => {
-  launchStableDiffusionWebUI();
+ipcMain.on('view-app-data', async (event) => {
+  console.log('launching file explorer window');
+  openUserDataInExplorer();
+  event.reply('view-app-data', 'received message to view app data');
 });
 
 if (process.env.NODE_ENV === 'production') {
