@@ -24,7 +24,7 @@
   "license": "MIT",
   "author": {
     "name": "Minh Nguyen",
-    "email": "minhnsp@gmail.com",
+    "email": "stablepen@gmail.com",
     "url": "https://lightroom.ai"
   },
   "main": "./src/main/main.ts",
