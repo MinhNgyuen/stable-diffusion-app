@@ -6,7 +6,7 @@
   "author": {
     "name": "Minh Nguyen",
     "email": "stablepen@gmail.com",
-    "url": "https://lightroom.ai"
+    "url": "https://stablepen.com"
   },
   "main": "./dist/main/main.js",
   "scripts": {
