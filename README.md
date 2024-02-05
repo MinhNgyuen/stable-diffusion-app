@@ -4,7 +4,7 @@ A stable diffusion launcher for your computer no matter what operating system or
 
 <img width="1181" alt="image" src="https://github.com/MinhNgyuen/stable-diffusion-app/assets/8717105/25c857cc-bad7-4a2e-b811-f1c8bcc308d4">
 
-It's not clear which stable diffusion project is compatible with your computer or how to install it.
+It's complicated to install stable diffusion web ui. Depending on what operating system or gpu you have, you need to install a different repo with different settings. Also, the manual process of installing git, python, and packages is not accessible to the average user.
 
 This project aims to make stable diffusion dead simple to use no matter what computer you own.
 
@@ -17,6 +17,9 @@ Currently the project supports Windows w/ Nvidia. The goal is to support stable 
 - View app data -> Easily open the file directory that contains your models and configuration files
 
 ## Starting Development
+
+This is my first time creating, maintaining, and contributing to an open source project.
+I'm open to all feedback and help. You can reach me via [discord](https://discord.gg/62VkDXtrW8)!
 
 Start the app in the `dev` environment:
 
