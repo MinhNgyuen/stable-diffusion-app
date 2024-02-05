@@ -8,20 +8,24 @@ It's not clear which stable diffusion project is compatible with your computer o
 
 This project aims to make stable diffusion dead simple to use no matter what computer you own.
 
-Right now, we can only launch stable diffusion web ui for Windows computers with Nvidia gpus.
+Currently the project supports Windows w/ Nvidia. The goal is to support stable diffusion on Windows, Linux, Mac running on CPU or GPU (Nvidia, AMD, Intel Arc)
 
-The goal is to support stable diffusion on Windows, Linux, Mac running on CPU or GPU (Nvidia, AMD, Intel Arc)
+## Features
 
+- Desktop application to install and launch stable diffusion web ui
+- Clear environment -> wipe stable diffusion models and code from your computer
+- View app data -> Easily open the file directory that contains your models and configuration files
 
 ## Starting Development
 
 Start the app in the `dev` environment:
 
 ```bash
-npm run dev
+npm install
+npm start
 ```
 
-If you are looking to contribute, start reading the code at the following files
+If you are looking to contribute, the following files are a great starting point
 
 - frontend: src/renderer/App.tsx
 - backend: src/main/main.ts
