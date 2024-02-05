@@ -29,5 +29,4 @@ npm-debug.log.*
 *.scss.d.ts
 
 out/
-release/
 node_modules/

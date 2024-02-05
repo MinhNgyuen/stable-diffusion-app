@@ -21,12 +21,19 @@ function Hello() {
     window.electron.ipcRenderer.sendMessage('install-stable-diffusion');
   };
 
+  const handleLaunchStableDiffusion = () => {
+    setInstallationMessages('');
+    window.electron.ipcRenderer.sendMessage('launch-stable-diffusion');
+  };
+
   const handleClearEnvironment = () => {
+    setInstallationMessages('');
     window.electron.ipcRenderer.sendMessage('clear-environment');
   };
 
-  const handleLaunchStableDiffusion = () => {
-    window.electron.ipcRenderer.sendMessage('launch-stable-diffusion');
+  const handleViewAppData = () => {
+    setInstallationMessages('');
+    window.electron.ipcRenderer.sendMessage('view-app-data');
   };
 
   useEffect(() => {
@@ -34,6 +41,7 @@ function Hello() {
       'install-stable-diffusion-reply',
       (message) => {
         console.log(message);
+        console.log('Installation complete STOP SPINNING');
         completeExecution();
       },
     );
@@ -93,6 +101,13 @@ function Hello() {
           disabled={isInstalling}
         >
           Clear environment
+        </button>
+        <button
+          type="button"
+          onClick={handleViewAppData}
+          disabled={isInstalling}
+        >
+          View app data
         </button>
       </div>
       <div className="installation-messages">
