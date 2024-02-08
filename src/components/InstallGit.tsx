@@ -105,4 +105,4 @@ const checkAndInstallGit = async (
   }
 };
 
-export { checkAndInstallGit, uninstallGitViaLocalBinary };
+export { checkAndInstallGit, isGitInstalled, uninstallGitViaLocalBinary };

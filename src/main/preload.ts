@@ -11,7 +11,15 @@ export type Channels =
   | 'launch-stable-diffusion'
   | 'execution-messages'
   | 'view-app-data'
-  | 'view-app-data-reply';
+  | 'view-app-data-reply'
+  | 'check-installation'
+  | 'check-installation-reply';
+
+export type InstallationStatus = {
+  git: boolean;
+  python: boolean;
+  sdwebui: boolean;
+};
 
 const electronHandler = {
   ipcRenderer: {

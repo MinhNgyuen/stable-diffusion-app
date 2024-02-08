@@ -1,6 +1,19 @@
+import { promises as fs } from 'fs';
 import simpleGit from 'simple-git';
 import sudo from 'sudo-prompt';
 import { sdwebuiPath } from '../main/constants';
+
+const isStableDiffusionWebUIInstalled = async (): Promise<boolean> => {
+  try {
+    await fs.access(sdwebuiPath);
+    return true;
+  } catch (error: any) {
+    if (error.code === 'ENOENT') {
+      return false;
+    }
+    throw error;
+  }
+};
 
 const cloneStableDiffusionWebUI = async (
   callback: (message: string) => void,
@@ -55,4 +68,8 @@ const deleteStableDiffusionWebUI = (callback: (message: string) => void) => {
   );
 };
 
-export { cloneStableDiffusionWebUI, deleteStableDiffusionWebUI };
+export {
+  isStableDiffusionWebUIInstalled,
+  cloneStableDiffusionWebUI,
+  deleteStableDiffusionWebUI,
+};

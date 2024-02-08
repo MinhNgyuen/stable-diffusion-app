@@ -17,17 +17,21 @@ import MenuBuilder from './menu';
 import { resolveHtmlPath } from './util';
 import {
   checkAndInstallPython,
+  isPythonInstalled,
   uninstallPythonViaLocalBinary,
 } from '../components/InstallPython';
 import {
   checkAndInstallGit,
+  isGitInstalled,
   uninstallGitViaLocalBinary,
 } from '../components/InstallGit';
 import {
   cloneStableDiffusionWebUI,
   deleteStableDiffusionWebUI,
+  isStableDiffusionWebUIInstalled,
 } from '../components/InstallStableDiffusionWebUI';
 import { pythonInstallerPath, sdwebuiPath } from './constants';
+import { InstallationStatus } from './preload';
 
 class AppUpdater {
   constructor() {
@@ -127,12 +131,30 @@ ipcMain.on('install-stable-diffusion', async (event) => {
   event.reply('install-stable-diffusion-reply', 'Installation complete');
 });
 
+ipcMain.on('check-installation', async (event) => {
+  const gitInstalled = await isGitInstalled((message: string) => {
+    sendUpdates(event, 'execution-messages', message);
+  });
+  const pythonInstalled = await isPythonInstalled((message: string) =>
+    sendUpdates(event, 'execution-messages', message),
+  );
+  const repoCloned = await isStableDiffusionWebUIInstalled();
+
+  const status: InstallationStatus = {
+    git: gitInstalled,
+    python: pythonInstalled,
+    sdwebui: repoCloned,
+  };
+
+  event.reply('check-installation-reply', status);
+});
+
 ipcMain.on('launch-stable-diffusion', async () => {
   launchStableDiffusionWebUI();
 });
 
 ipcMain.on('clear-environment', async (event) => {
-  clearEnvironment((message: string) => {
+  await clearEnvironment((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
   event.reply(
