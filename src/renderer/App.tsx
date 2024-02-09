@@ -92,7 +92,7 @@ function Hello() {
   }, []);
 
   return (
-    <div>
+    <div className="component-container">
       <div className="Hello">
         <img
           width="200"
@@ -129,6 +129,7 @@ function Hello() {
         </div>
       ) : (
         <button
+          className="button-group"
           type="button"
           onClick={handleInstallStableDiffusion}
           disabled={isInstalling}
@@ -137,11 +138,7 @@ function Hello() {
         </button>
       )}
       <div className="installation-messages">
-        <textarea
-          readOnly
-          value={installationMessages}
-          style={{ width: '100%', height: '100px', marginTop: '20px' }}
-        />
+        <textarea readOnly value={installationMessages} />
       </div>
     </div>
   );

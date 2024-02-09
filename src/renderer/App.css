@@ -17,12 +17,58 @@ body {
   display: flex;
   justify-content: center;
   align-items: center;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+.component-container {
+  display: flex;
+  flex-direction: column;
+  justify-content: center;
+  align-items: center;
+  height: 100%;
+  width: 100%;
+  max-width: 100vw;
+  max-height: 100vh;
+  padding: 20px;
+  box-sizing: border-box;
+}
+
+#root {
+  height: 100%;
+  max-height: 100vw;
+  width: 100%;
+  max-width: 940px;
+  margin: 0 auto;
+  padding: 0;
+  display: flex;
+  justify-content: center;
+  box-sizing: border-box;
+}
+
+.installation-messages {
+  padding: 20px;
+  margin: 0;
+  box-sizing: border-box;
+  width: 100%;
+  height: 100%;
+}
+
+textarea {
+  height: 100%;
+  width: 100%;
+  padding: 10px;
+  box-sizing: border-box;
+  margin-top: 20px;
+  border-radius: 5px;
+  border: 1px solid #ccc;
+  background-color: #f8f8f8;
 }
 
 button {
   background-color: white;
   padding: 10px 20px;
-  border-radius: 10px;
+  border-radius: 15px;
   border: none;
   appearance: none;
   font-size: 1.3rem;
@@ -32,6 +78,14 @@ button {
   transition: all ease-in 0.1s;
   cursor: pointer;
   opacity: 0.9;
+  margin: 0 10px;
+}
+
+.button-group {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  margin: 20px;
 }
 
 button:hover {
@@ -60,10 +114,6 @@ a:hover {
   justify-content: center;
   align-items: center;
   margin: 20px 0;
-}
-
-.button-group button:not(:last-child) {
-  margin-right: 10px;
 }
 
 .app-title {
