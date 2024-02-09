@@ -32,6 +32,7 @@ import {
 } from '../components/InstallStableDiffusionWebUI';
 import { pythonInstallerPath, sdwebuiPath } from './constants';
 import { InstallationStatus } from './preload';
+import getGpuInfo from '../components/GetGpu';
 
 class AppUpdater {
   constructor() {
@@ -131,7 +132,7 @@ ipcMain.on('install-stable-diffusion', async (event) => {
   event.reply('install-stable-diffusion-reply', 'Installation complete');
 });
 
-ipcMain.on('check-installation', async (event) => {
+ipcMain.on('get-configuration', async (event) => {
   const gitInstalled = await isGitInstalled((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
@@ -140,13 +141,16 @@ ipcMain.on('check-installation', async (event) => {
   );
   const repoCloned = await isStableDiffusionWebUIInstalled();
 
+  const gpuInfo = await getGpuInfo();
+
   const status: InstallationStatus = {
     git: gitInstalled,
     python: pythonInstalled,
     sdwebui: repoCloned,
+    gpu: gpuInfo,
   };
 
-  event.reply('check-installation-reply', status);
+  event.reply('get-configuration-reply', status);
 });
 
 ipcMain.on('launch-stable-diffusion', async () => {

@@ -12,13 +12,14 @@ export type Channels =
   | 'execution-messages'
   | 'view-app-data'
   | 'view-app-data-reply'
-  | 'check-installation'
-  | 'check-installation-reply';
+  | 'get-configuration'
+  | 'get-configuration-reply';
 
 export type InstallationStatus = {
   git: boolean;
   python: boolean;
   sdwebui: boolean;
+  gpu: string[];
 };
 
 const electronHandler = {

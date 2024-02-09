@@ -5,12 +5,13 @@ import './App.css';
 import { InstallationStatus } from '../main/preload';
 
 function Hello() {
+  const [gpuInfo, setGpuInfo] = useState<string[]>([]);
   const [installationMessages, setInstallationMessages] = useState<string>('');
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
 
-  const checkInstallation = () => {
-    window.electron.ipcRenderer.sendMessage('check-installation');
+  const getConfiguration = () => {
+    window.electron.ipcRenderer.sendMessage('get-configuration');
   };
 
   const beginExecution = () => {
@@ -44,13 +45,14 @@ function Hello() {
 
   useEffect(() => {
     const unsubscribeCheck = window.electron.ipcRenderer.on(
-      'check-installation-reply',
+      'get-configuration-reply',
       (data) => {
         const dependencyStatus = data as InstallationStatus;
         const status =
           dependencyStatus.git &&
           dependencyStatus.python &&
           dependencyStatus.sdwebui;
+        setGpuInfo(dependencyStatus.gpu);
         setIsInstalled(status);
       },
     );
@@ -60,7 +62,7 @@ function Hello() {
       (message) => {
         console.log(message);
         completeExecution();
-        checkInstallation();
+        getConfiguration();
       },
     );
 
@@ -77,11 +79,11 @@ function Hello() {
       'clear-environment-reply',
       (message) => {
         console.log(message);
-        checkInstallation();
+        getConfiguration();
       },
     );
 
-    checkInstallation();
+    getConfiguration();
 
     return () => {
       unsubscribeCheck();
@@ -90,6 +92,14 @@ function Hello() {
       unsubscribeClearEnvironment();
     };
   }, []);
+
+  const hasNvidia = gpuInfo.some((gpu) => gpu.toLowerCase().includes('nvidia'));
+  const openWaitlistLink = () => {
+    window.open(
+      'https://docs.google.com/forms/d/e/1FAIpQLSfZjT1wTsmwqEgqI3uXN-U5dgoGA5r93f77KTfnGxB4B5L5Dw/viewform',
+      '_blank',
+    );
+  };
 
   return (
     <div className="component-container">
@@ -126,6 +136,9 @@ function Hello() {
           >
             View app data
           </button>
+          <div className="installation-messages">
+            <textarea readOnly value={installationMessages} />
+          </div>
         </div>
       ) : (
         <button
@@ -137,8 +150,55 @@ function Hello() {
           Install Stable Diffusion
         </button>
       )}
-      <div className="installation-messages">
-        <textarea readOnly value={installationMessages} />
+
+      <div>
+        <h3>GPUs detected</h3>
+
+        <ul>
+          {gpuInfo.map((gpu, index) => (
+            <li
+              key={index}
+              style={{
+                display: 'flex',
+                alignItems: 'center',
+                marginBottom: '10px',
+              }}
+            >
+              <span
+                style={{
+                  height: '10px',
+                  width: '10px',
+                  borderRadius: '50%',
+                  marginRight: '10px',
+                  backgroundColor: gpu.toLowerCase().includes('nvidia')
+                    ? 'green'
+                    : 'red',
+                }}
+              />
+              {gpu}
+            </li>
+          ))}
+        </ul>
+        {hasNvidia && (
+          <div>
+            <p>No Nvidia GPUs were detected.</p>
+            <p>
+              Stable diffusion app only supports Windows computers with Nvidia
+              gpus. We are working towards supporting more gpu types. Sign up
+              for the{' '}
+              <span
+                style={{ cursor: 'pointer', textDecoration: 'underline' }}
+                onClick={openWaitlistLink}
+                onKeyDown={openWaitlistLink}
+                role="button"
+                tabIndex={0}
+              >
+                waitlist
+              </span>{' '}
+              so we know which gpu has the most demand!
+            </p>
+          </div>
+        )}
       </div>
     </div>
   );
