@@ -3,12 +3,15 @@ import { useEffect, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
 import { InstallationStatus } from '../main/preload';
+import GPUWarningDrawer from '../components/WarningDrawer';
+import GPUWarning from '../components/GpuWarning';
 
 function Hello() {
   const [gpuInfo, setGpuInfo] = useState<string[]>([]);
   const [installationMessages, setInstallationMessages] = useState<string>('');
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
+  const [hasClearableData, setHasClearableData] = useState<boolean>(false);
 
   const getConfiguration = () => {
     window.electron.ipcRenderer.sendMessage('get-configuration');
@@ -53,14 +56,18 @@ function Hello() {
           dependencyStatus.python &&
           dependencyStatus.sdwebui;
         setGpuInfo(dependencyStatus.gpu);
+        const clearable =
+          (dependencyStatus.didAppInstallGit && dependencyStatus.git) ||
+          (dependencyStatus.didAppInstallPython && dependencyStatus.python) ||
+          dependencyStatus.sdwebui;
+        setHasClearableData(clearable);
         setIsInstalled(status);
       },
     );
 
     const unsubscribeInstall = window.electron.ipcRenderer.on(
       'install-stable-diffusion-reply',
-      (message) => {
-        console.log(message);
+      () => {
         completeExecution();
         getConfiguration();
       },
@@ -77,8 +84,7 @@ function Hello() {
 
     const unsubscribeClearEnvironment = window.electron.ipcRenderer.on(
       'clear-environment-reply',
-      (message) => {
-        console.log(message);
+      () => {
         getConfiguration();
       },
     );
@@ -94,12 +100,6 @@ function Hello() {
   }, []);
 
   const hasNvidia = gpuInfo.some((gpu) => gpu.toLowerCase().includes('nvidia'));
-  const openWaitlistLink = () => {
-    window.open(
-      'https://docs.google.com/forms/d/e/1FAIpQLSfZjT1wTsmwqEgqI3uXN-U5dgoGA5r93f77KTfnGxB4B5L5Dw/viewform',
-      '_blank',
-    );
-  };
 
   return (
     <div className="component-container">
@@ -112,93 +112,60 @@ function Hello() {
         />
       </div>
       <h1 className="app-title">Stable diffusion app</h1>
-
-      {isInstalled ? (
-        <div className="button-group">
-          <button
-            type="button"
-            onClick={handleLaunchStableDiffusion}
-            disabled={isInstalling}
-          >
-            Launch Stable Diffusion
-          </button>
-          <button
-            type="button"
-            onClick={handleClearEnvironment}
-            disabled={isInstalling}
-          >
-            Clear environment
-          </button>
-          <button
-            type="button"
-            onClick={handleViewAppData}
-            disabled={isInstalling}
-          >
-            View app data
-          </button>
-          <div className="installation-messages">
-            <textarea readOnly value={installationMessages} />
-          </div>
-        </div>
-      ) : (
-        <button
-          className="button-group"
-          type="button"
-          onClick={handleInstallStableDiffusion}
-          disabled={isInstalling}
-        >
-          Install Stable Diffusion
-        </button>
-      )}
-
-      <div>
-        <h3>GPUs detected</h3>
-
-        <ul>
-          {gpuInfo.map((gpu, index) => (
-            <li
-              key={index}
-              style={{
-                display: 'flex',
-                alignItems: 'center',
-                marginBottom: '10px',
-              }}
-            >
-              <span
-                style={{
-                  height: '10px',
-                  width: '10px',
-                  borderRadius: '50%',
-                  marginRight: '10px',
-                  backgroundColor: gpu.toLowerCase().includes('nvidia')
-                    ? 'green'
-                    : 'red',
-                }}
-              />
-              {gpu}
-            </li>
-          ))}
-        </ul>
-        {hasNvidia && (
+      <div className="button-group">
+        {isInstalled ? (
           <div>
-            <p>No Nvidia GPUs were detected.</p>
-            <p>
-              Stable diffusion app only supports Windows computers with Nvidia
-              gpus. We are working towards supporting more gpu types. Sign up
-              for the{' '}
-              <span
-                style={{ cursor: 'pointer', textDecoration: 'underline' }}
-                onClick={openWaitlistLink}
-                onKeyDown={openWaitlistLink}
-                role="button"
-                tabIndex={0}
-              >
-                waitlist
-              </span>{' '}
-              so we know which gpu has the most demand!
-            </p>
+            <button
+              type="button"
+              onClick={handleLaunchStableDiffusion}
+              disabled={isInstalling}
+            >
+              Launch Stable Diffusion
+            </button>
           </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleInstallStableDiffusion}
+            disabled={isInstalling}
+          >
+            Install Stable Diffusion
+          </button>
         )}
+        {hasClearableData && (
+          <>
+            <button
+              type="button"
+              onClick={handleClearEnvironment}
+              disabled={isInstalling}
+            >
+              Clear data
+            </button>
+            <button
+              type="button"
+              onClick={handleViewAppData}
+              disabled={isInstalling}
+            >
+              View data
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="installation-messages">
+        <textarea readOnly value={installationMessages} />
+      </div>
+      <br />
+      <div>
+        {hasNvidia &&
+          (isInstalled ? (
+            <GPUWarningDrawer anchor="bottom" gpus={gpuInfo} />
+          ) : (
+            <div>
+              <br />
+              <GPUWarning gpus={gpuInfo} />
+            </div>
+          ))}
       </div>
     </div>
   );

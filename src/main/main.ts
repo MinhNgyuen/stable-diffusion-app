@@ -33,6 +33,7 @@ import {
 import { pythonInstallerPath, sdwebuiPath } from './constants';
 import { InstallationStatus } from './preload';
 import getGpuInfo from '../components/GetGpu';
+import { readSetting } from '../components/SettingsFile';
 
 class AppUpdater {
   constructor() {
@@ -136,9 +137,11 @@ ipcMain.on('get-configuration', async (event) => {
   const gitInstalled = await isGitInstalled((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
+  const didAppInstallGit = readSetting('didAppInstallGit');
   const pythonInstalled = await isPythonInstalled((message: string) =>
     sendUpdates(event, 'execution-messages', message),
   );
+  const didAppInstallPython = readSetting('didAppInstallPython');
   const repoCloned = await isStableDiffusionWebUIInstalled();
 
   const gpuInfo = await getGpuInfo();
@@ -148,6 +151,8 @@ ipcMain.on('get-configuration', async (event) => {
     python: pythonInstalled,
     sdwebui: repoCloned,
     gpu: gpuInfo,
+    didAppInstallGit: didAppInstallGit === 'true',
+    didAppInstallPython: didAppInstallPython === 'true',
   };
 
   event.reply('get-configuration-reply', status);
@@ -212,7 +217,7 @@ const createWindow = async () => {
   };
 
   mainWindow = new BrowserWindow({
-    show: false,
+    show: true,
     width: 1024,
     height: 728,
     icon: getAssetPath('icon.png'),
