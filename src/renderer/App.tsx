@@ -157,7 +157,7 @@ function Hello() {
       </div>
       <br />
       <div>
-        {hasNvidia &&
+        {!hasNvidia &&
           (isInstalled ? (
             <GPUWarningDrawer anchor="bottom" gpus={gpuInfo} />
           ) : (
