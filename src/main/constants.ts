@@ -7,6 +7,7 @@ export const settingsPath = isDevelopment
   ? path.join(userDataPath, 'dev-settings.json')
   : path.join(userDataPath, 'settings.json');
 export const sdwebuiPath = path.join(userDataPath, 'stable-diffusion-webui');
+export const webuiUserBatPath = path.join(sdwebuiPath, 'webui-user.bat');
 
 export const extrasPath = isDevelopment
   ? path.join(app.getAppPath(), 'assets')
