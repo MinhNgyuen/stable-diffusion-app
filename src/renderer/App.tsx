@@ -3,14 +3,18 @@ import { useEffect, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
 import { InstallationStatus } from '../main/preload';
+import GPUWarningDrawer from '../components/WarningDrawer';
+import GPUWarning from '../components/GpuWarning';
 
 function Hello() {
+  const [gpuInfo, setGpuInfo] = useState<string[]>([]);
   const [installationMessages, setInstallationMessages] = useState<string>('');
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
+  const [hasClearableData, setHasClearableData] = useState<boolean>(false);
 
-  const checkInstallation = () => {
-    window.electron.ipcRenderer.sendMessage('check-installation');
+  const getConfiguration = () => {
+    window.electron.ipcRenderer.sendMessage('get-configuration');
   };
 
   const beginExecution = () => {
@@ -44,23 +48,28 @@ function Hello() {
 
   useEffect(() => {
     const unsubscribeCheck = window.electron.ipcRenderer.on(
-      'check-installation-reply',
+      'get-configuration-reply',
       (data) => {
         const dependencyStatus = data as InstallationStatus;
         const status =
           dependencyStatus.git &&
           dependencyStatus.python &&
           dependencyStatus.sdwebui;
+        setGpuInfo(dependencyStatus.gpu);
+        const clearable =
+          (dependencyStatus.didAppInstallGit && dependencyStatus.git) ||
+          (dependencyStatus.didAppInstallPython && dependencyStatus.python) ||
+          dependencyStatus.sdwebui;
+        setHasClearableData(clearable);
         setIsInstalled(status);
       },
     );
 
     const unsubscribeInstall = window.electron.ipcRenderer.on(
       'install-stable-diffusion-reply',
-      (message) => {
-        console.log(message);
+      () => {
         completeExecution();
-        checkInstallation();
+        getConfiguration();
       },
     );
 
@@ -75,13 +84,12 @@ function Hello() {
 
     const unsubscribeClearEnvironment = window.electron.ipcRenderer.on(
       'clear-environment-reply',
-      (message) => {
-        console.log(message);
-        checkInstallation();
+      () => {
+        getConfiguration();
       },
     );
 
-    checkInstallation();
+    getConfiguration();
 
     return () => {
       unsubscribeCheck();
@@ -90,6 +98,8 @@ function Hello() {
       unsubscribeClearEnvironment();
     };
   }, []);
+
+  const hasNvidia = gpuInfo.some((gpu) => gpu.toLowerCase().includes('nvidia'));
 
   return (
     <div className="component-container">
@@ -102,43 +112,60 @@ function Hello() {
         />
       </div>
       <h1 className="app-title">Stable diffusion app</h1>
+      <div className="button-group">
+        {isInstalled ? (
+          <div>
+            <button
+              type="button"
+              onClick={handleLaunchStableDiffusion}
+              disabled={isInstalling}
+            >
+              Launch Stable Diffusion
+            </button>
+          </div>
+        ) : (
+          <button
+            type="button"
+            onClick={handleInstallStableDiffusion}
+            disabled={isInstalling}
+          >
+            Install Stable Diffusion
+          </button>
+        )}
+        {hasClearableData && (
+          <>
+            <button
+              type="button"
+              onClick={handleClearEnvironment}
+              disabled={isInstalling}
+            >
+              Clear data
+            </button>
+            <button
+              type="button"
+              onClick={handleViewAppData}
+              disabled={isInstalling}
+            >
+              View data
+            </button>
+          </>
+        )}
+      </div>
 
-      {isInstalled ? (
-        <div className="button-group">
-          <button
-            type="button"
-            onClick={handleLaunchStableDiffusion}
-            disabled={isInstalling}
-          >
-            Launch Stable Diffusion
-          </button>
-          <button
-            type="button"
-            onClick={handleClearEnvironment}
-            disabled={isInstalling}
-          >
-            Clear environment
-          </button>
-          <button
-            type="button"
-            onClick={handleViewAppData}
-            disabled={isInstalling}
-          >
-            View app data
-          </button>
-        </div>
-      ) : (
-        <button
-          className="button-group"
-          type="button"
-          onClick={handleInstallStableDiffusion}
-          disabled={isInstalling}
-        >
-          Install Stable Diffusion
-        </button>
-      )}
       <div className="installation-messages">
         <textarea readOnly value={installationMessages} />
+      </div>
+      <br />
+      <div>
+        {!hasNvidia &&
+          (isInstalled ? (
+            <GPUWarningDrawer anchor="bottom" gpus={gpuInfo} />
+          ) : (
+            <div>
+              <br />
+              <GPUWarning gpus={gpuInfo} />
+            </div>
+          ))}
       </div>
     </div>
   );

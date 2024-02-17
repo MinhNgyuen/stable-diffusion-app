@@ -32,6 +32,8 @@ import {
 } from '../components/InstallStableDiffusionWebUI';
 import { pythonInstallerPath, sdwebuiPath } from './constants';
 import { InstallationStatus } from './preload';
+import getGpuInfo from '../components/GetGpu';
+import { readSetting } from '../components/SettingsFile';
 
 class AppUpdater {
   constructor() {
@@ -131,22 +133,29 @@ ipcMain.on('install-stable-diffusion', async (event) => {
   event.reply('install-stable-diffusion-reply', 'Installation complete');
 });
 
-ipcMain.on('check-installation', async (event) => {
+ipcMain.on('get-configuration', async (event) => {
   const gitInstalled = await isGitInstalled((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
+  const didAppInstallGit = readSetting('didAppInstallGit');
   const pythonInstalled = await isPythonInstalled((message: string) =>
     sendUpdates(event, 'execution-messages', message),
   );
+  const didAppInstallPython = readSetting('didAppInstallPython');
   const repoCloned = await isStableDiffusionWebUIInstalled();
+
+  const gpuInfo = await getGpuInfo();
 
   const status: InstallationStatus = {
     git: gitInstalled,
     python: pythonInstalled,
     sdwebui: repoCloned,
+    gpu: gpuInfo,
+    didAppInstallGit: didAppInstallGit === 'true',
+    didAppInstallPython: didAppInstallPython === 'true',
   };
 
-  event.reply('check-installation-reply', status);
+  event.reply('get-configuration-reply', status);
 });
 
 ipcMain.on('launch-stable-diffusion', async () => {
@@ -208,7 +217,7 @@ const createWindow = async () => {
   };
 
   mainWindow = new BrowserWindow({
-    show: false,
+    show: true,
     width: 1024,
     height: 728,
     icon: getAssetPath('icon.png'),

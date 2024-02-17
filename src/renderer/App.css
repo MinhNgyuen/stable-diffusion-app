@@ -2,6 +2,14 @@
  * @NOTE: Prepend a `~` to css file paths that are in your node_modules
  *        See https://github.com/webpack-contrib/sass-loader#imports
  */
+
+@import url('https://fonts.googleapis.com/css?family=Roboto:300,400,500,700&display=swap');
+
+:root {
+  --color-success: #4caf50; /* @mui/material/colors green[500] */
+  --color-failure: #f44336; /* @mui/material/colors red[500] */
+}
+
 body {
   position: relative;
   color: white;
@@ -12,7 +20,7 @@ body {
     #dd5789 51.77%,
     #7a2c9e 129.35%
   );
-  font-family: sans-serif;
+  font-family: 'Roboto';
   overflow-y: hidden;
   display: flex;
   justify-content: center;
