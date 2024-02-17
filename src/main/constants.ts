@@ -4,8 +4,8 @@ import path from 'path';
 export const isDevelopment = process.env.NODE_ENV !== 'production';
 export const userDataPath = app.getPath('userData');
 export const settingsPath = isDevelopment
-  ? path.join(userDataPath, 'settings.json')
-  : path.join(userDataPath, 'dev-settings.json');
+  ? path.join(userDataPath, 'dev-settings.json')
+  : path.join(userDataPath, 'settings.json');
 export const sdwebuiPath = path.join(userDataPath, 'stable-diffusion-webui');
 
 export const extrasPath = isDevelopment

@@ -1,5 +1,5 @@
-import { spawn } from 'child_process';
-import sudo from 'sudo-prompt';
+import { exec, spawn } from 'child_process';
+import { promisify } from 'util';
 import { readSetting, updateSetting } from './SettingsFile';
 import { pythonInstallerPath } from '../main/constants';
 
@@ -38,154 +38,74 @@ const isPythonInstalled = (
   });
 };
 
-const installPythonViaLocalBinary = (
+const execAsync = promisify(exec);
+
+async function installPythonViaLocalBinary(
   filepath: string,
   callback: (message: string) => void,
-) => {
-  callback('installPythonViaLocalBinary');
-  sudo.exec(
-    // https://docs.python.org/3.10/using/windows.html#installing-without-ui
-    `${filepath} /passive PrependPath=1`,
-    (error, stdout, stderr) => {
-      if (error) {
-        callback(`Error executing Python installer: ${error}, ${stderr}`);
-        return;
-      }
-      updateSetting('didAppInstallPython', 'true');
-      callback(`Python installed successfully: ${stdout}`);
-    },
-  );
-};
+): Promise<void> {
+  callback('Starting Python installation...');
 
-const checkAndInstallPython = async (callback: (message: string) => void) => {
-  return isPythonInstalled(callback)
-    .then((isInstalled) => {
-      if (!isInstalled) {
-        callback('Python not installed, installing now...');
-        installPythonViaLocalBinary(pythonInstallerPath, callback);
-      } else {
-        callback('Python already installed');
-      }
-    })
-    .catch((error) => {
-      callback(`An error occurred while checking for Python: ${error}`);
-      callback('Python not installed, installing now...');
-      installPythonViaLocalBinary(pythonInstallerPath, callback);
-    });
-};
+  // https://docs.python.org/3.10/using/windows.html#installing-without-ui
+  const command = `${filepath} /passive PrependPath=1`;
 
-const uninstallPythonViaLocalBinary = (
-  filepath: string,
-  callback: (message: string) => void,
-) => {
-  return new Promise(
-    (resolve: (msg: string) => void, reject: (msg: Error) => void) => {
-      callback('uninstallPythonViaLocalBinary');
-      const didAppInstallPython = readSetting('didAppInstallPython');
-      if (didAppInstallPython === 'false') {
-        callback(
-          'Python was not installed by Stable diffusion app, skipping uninstall',
-        );
-        resolve('skip Python uninstall');
-        return;
-      }
-      callback(
-        'Python was installed by Stable diffusion app, uninstalling now',
-      );
-      sudo.exec(
-        // https://docs.python.org/3.10/using/windows.html#installing-without-ui
-        `${filepath} /uninstall PrependPath=1`,
-        (error, stdout, stderr) => {
-          if (error) {
-            callback(`Error uninstalling Python: ${error}, ${stderr}`);
-            reject(new Error('error Python uninstall'));
-            return;
-          }
-          updateSetting('didAppInstallPython', 'false');
-          callback(`Python uninstalled successfully ${stdout}`);
-          resolve('successful Python uninstall');
-        },
-      );
-    },
-  );
-};
-
-const uninstallPythonAndGit = (
-  pythonFilePath: string,
-  callback: (message: string) => void,
-) => {
-  callback('uninstallPythonAndGit');
-  const didAppInstallPython = readSetting('didAppInstallPython');
-  const didAppInstallGit = readSetting('didAppInstallGit');
-  const uninstallPythonCommand = `start /wait ${pythonFilePath} /uninstall PrependPath=1`;
-  const uninstallGitCommand = `start /wait ${pythonFilePath} /uninstall PrependPath=1`;
-  if (didAppInstallPython === 'true' && didAppInstallGit === 'true') {
-    callback(
-      'Python and Git were installed by Stable diffusion app, uninstalling now',
-    );
-    sudo.exec(
-      // https://docs.python.org/3.10/using/windows.html#installing-without-ui
-      `${uninstallPythonCommand} && ${uninstallGitCommand}`,
-      (error, stdout, stderr) => {
-        if (error) {
-          callback(`Error uninstalling Python and Git: ${error}, ${stderr}`);
-          return;
-        }
-        updateSetting('didAppInstallPython', 'false');
-        updateSetting('didAppInstallGit', 'false');
-        callback(`Python and Git uninstalled successfully ${stdout}`);
-      },
-    );
-  } else {
-    if (didAppInstallPython === 'false') {
-      callback(
-        'Python was not installed by Stable diffusion app, skipping uninstall',
-      );
-    } else {
-      callback(
-        'Python was installed by Stable diffusion app, uninstalling now',
-      );
-      sudo.exec(
-        // https://docs.python.org/3.10/using/windows.html#installing-without-ui
-        uninstallGitCommand,
-        (error, stdout, stderr) => {
-          if (error) {
-            callback(`Error uninstalling Python: ${error}, ${stderr}`);
-            return;
-          }
-          updateSetting('didAppInstallPython', 'false');
-          callback(`Python uninstalled successfully ${stdout}`);
-        },
-      );
-    }
-    if (didAppInstallGit === 'false') {
-      callback(
-        'Git was not installed by Stable diffusion app, skipping uninstall',
-      );
-    } else {
-      callback('Git was installed by Stable diffusion app, uninstalling now');
-      const command = '"C:\\Program Files\\Git\\unins000.exe" /SILENT';
-
-      sudo.exec(
-        // https://docs.Git.org/3.10/using/windows.html#installing-without-ui
-        command,
-        (error, stdout, stderr) => {
-          if (error) {
-            callback(`Error uninstalling Git: ${error}, ${stderr}`);
-            return;
-          }
-          updateSetting('didAppInstallGit', 'false');
-          callback(`Git uninstalled successfully ${stdout}`);
-        },
-      );
-    }
+  try {
+    const { stdout } = await execAsync(command);
+    updateSetting('didAppInstallPython', 'true');
+    callback(`Python installed successfully: ${stdout}`);
+  } catch (error) {
+    callback(`Error executing Python installer: ${error}`);
   }
-};
+}
+
+async function checkAndInstallPython(
+  callback: (message: string) => void,
+): Promise<void> {
+  try {
+    const isInstalled = await isPythonInstalled(callback);
+    if (!isInstalled) {
+      callback('Python not installed, installing now...');
+      await installPythonViaLocalBinary(pythonInstallerPath, callback);
+    } else {
+      callback('Python already installed');
+    }
+  } catch (error) {
+    callback(`An error occurred while checking for Python: ${error}`);
+    callback('Attempting to install Python now...');
+    await installPythonViaLocalBinary(pythonInstallerPath, callback).catch(
+      (err) => callback(`Failed to install Python: ${err}`),
+    );
+  }
+}
+
+async function uninstallPythonViaLocalBinary(
+  filepath: string,
+  callback: (message: string) => void,
+): Promise<string> {
+  callback('uninstallPythonViaLocalBinary');
+  const didAppInstallPython = readSetting('didAppInstallPython');
+  if (didAppInstallPython === 'false') {
+    callback('Python was not installed by the app, skipping uninstall');
+    return 'skip Python uninstall';
+  }
+
+  callback('Python was installed by the app, uninstalling now');
+
+  try {
+    const command = `${filepath} /uninstall PrependPath=1`;
+    const { stdout } = await execAsync(command);
+    updateSetting('didAppInstallPython', 'false');
+    callback(`Python uninstalled successfully: ${stdout}`);
+    return 'successful Python uninstall';
+  } catch (error) {
+    callback(`Error uninstalling Python: ${error}`);
+    throw new Error('error Python uninstall');
+  }
+}
 
 export {
   checkAndInstallPython,
   isPythonInstalled,
   installPythonViaLocalBinary,
   uninstallPythonViaLocalBinary,
-  uninstallPythonAndGit,
 };

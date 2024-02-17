@@ -2,10 +2,16 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
+import { InstallationStatus } from '../main/preload';
 
 function Hello() {
   const [installationMessages, setInstallationMessages] = useState<string>('');
   const [isInstalling, setIsInstalling] = useState<boolean>(false);
+  const [isInstalled, setIsInstalled] = useState<boolean>(false);
+
+  const checkInstallation = () => {
+    window.electron.ipcRenderer.sendMessage('check-installation');
+  };
 
   const beginExecution = () => {
     setInstallationMessages('');
@@ -37,12 +43,24 @@ function Hello() {
   };
 
   useEffect(() => {
+    const unsubscribeCheck = window.electron.ipcRenderer.on(
+      'check-installation-reply',
+      (data) => {
+        const dependencyStatus = data as InstallationStatus;
+        const status =
+          dependencyStatus.git &&
+          dependencyStatus.python &&
+          dependencyStatus.sdwebui;
+        setIsInstalled(status);
+      },
+    );
+
     const unsubscribeInstall = window.electron.ipcRenderer.on(
       'install-stable-diffusion-reply',
       (message) => {
         console.log(message);
-        console.log('Installation complete STOP SPINNING');
         completeExecution();
+        checkInstallation();
       },
     );
 
@@ -59,10 +77,14 @@ function Hello() {
       'clear-environment-reply',
       (message) => {
         console.log(message);
+        checkInstallation();
       },
     );
 
+    checkInstallation();
+
     return () => {
+      unsubscribeCheck();
       unsubscribeInstall();
       unsubscribeProgress();
       unsubscribeClearEnvironment();
@@ -70,7 +92,7 @@ function Hello() {
   }, []);
 
   return (
-    <div>
+    <div className="component-container">
       <div className="Hello">
         <img
           width="200"
@@ -80,42 +102,43 @@ function Hello() {
         />
       </div>
       <h1 className="app-title">Stable diffusion app</h1>
-      <div className="button-group">
+
+      {isInstalled ? (
+        <div className="button-group">
+          <button
+            type="button"
+            onClick={handleLaunchStableDiffusion}
+            disabled={isInstalling}
+          >
+            Launch Stable Diffusion
+          </button>
+          <button
+            type="button"
+            onClick={handleClearEnvironment}
+            disabled={isInstalling}
+          >
+            Clear environment
+          </button>
+          <button
+            type="button"
+            onClick={handleViewAppData}
+            disabled={isInstalling}
+          >
+            View app data
+          </button>
+        </div>
+      ) : (
         <button
+          className="button-group"
           type="button"
           onClick={handleInstallStableDiffusion}
           disabled={isInstalling}
         >
           Install Stable Diffusion
         </button>
-        <button
-          type="button"
-          onClick={handleLaunchStableDiffusion}
-          disabled={isInstalling}
-        >
-          Launch Stable Diffusion
-        </button>
-        <button
-          type="button"
-          onClick={handleClearEnvironment}
-          disabled={isInstalling}
-        >
-          Clear environment
-        </button>
-        <button
-          type="button"
-          onClick={handleViewAppData}
-          disabled={isInstalling}
-        >
-          View app data
-        </button>
-      </div>
+      )}
       <div className="installation-messages">
-        <textarea
-          readOnly
-          value={installationMessages}
-          style={{ width: '100%', height: '100px', marginTop: '20px' }}
-        />
+        <textarea readOnly value={installationMessages} />
       </div>
     </div>
   );
