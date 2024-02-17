@@ -1,11 +1,11 @@
 import { promises as fs } from 'fs';
 import simpleGit from 'simple-git';
 import sudo from 'sudo-prompt';
-import { sdwebuiPath } from '../main/constants';
+import { webuiUserBatPath, sdwebuiPath } from '../main/constants';
 
 const isStableDiffusionWebUIInstalled = async (): Promise<boolean> => {
   try {
-    await fs.access(sdwebuiPath);
+    await fs.access(webuiUserBatPath);
     return true;
   } catch (error: any) {
     if (error.code === 'ENOENT') {
