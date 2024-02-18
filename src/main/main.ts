@@ -31,7 +31,7 @@ import {
   isStableDiffusionWebUIInstalled,
 } from '../components/InstallStableDiffusionWebUI';
 import { pythonInstallerPath, sdwebuiPath } from './constants';
-import { InstallationStatus } from './preload';
+import { InstallationInfo, DependencyStatus } from './preload';
 import getGpuInfo from '../components/GetGpu';
 import { readSetting } from '../components/SettingsFile';
 
@@ -62,7 +62,7 @@ const clearEnvironment = async (callback: (message: string) => void) => {
       errs.push(err);
     });
   await uninstallPythonViaLocalBinary(pythonInstallerPath, callback)
-    .then((msg: string) => {
+    .then((msg: InstallationInfo) => {
       res.push(msg);
     })
     .catch((err: Error) => {
@@ -146,7 +146,7 @@ ipcMain.on('get-configuration', async (event) => {
 
   const gpuInfo = await getGpuInfo();
 
-  const status: InstallationStatus = {
+  const status: DependencyStatus = {
     git: gitInstalled,
     python: pythonInstalled,
     sdwebui: repoCloned,

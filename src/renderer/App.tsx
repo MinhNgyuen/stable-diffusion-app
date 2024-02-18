@@ -2,7 +2,7 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
-import { InstallationStatus } from '../main/preload';
+import { DependencyStatus } from '../main/preload';
 import GPUWarningDrawer from '../components/WarningDrawer';
 import GPUWarning from '../components/GpuWarning';
 
@@ -50,7 +50,7 @@ function Hello() {
     const unsubscribeCheck = window.electron.ipcRenderer.on(
       'get-configuration-reply',
       (data) => {
-        const dependencyStatus = data as InstallationStatus;
+        const dependencyStatus = data as DependencyStatus;
         const status =
           dependencyStatus.git &&
           dependencyStatus.python &&

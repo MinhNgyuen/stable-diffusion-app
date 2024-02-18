@@ -2,6 +2,7 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { readSetting, updateSetting } from './SettingsFile';
 import { pythonInstallerPath } from '../main/constants';
+import { InstallationInfo } from '../main/preload';
 
 const isPythonInstalled = (
   callback: (message: string) => void,
@@ -43,7 +44,7 @@ const execAsync = promisify(exec);
 async function installPythonViaLocalBinary(
   filepath: string,
   callback: (message: string) => void,
-): Promise<void> {
+): Promise<InstallationInfo> {
   callback('Starting Python installation...');
 
   // https://docs.python.org/3.10/using/windows.html#installing-without-ui
@@ -53,40 +54,45 @@ async function installPythonViaLocalBinary(
     const { stdout } = await execAsync(command);
     updateSetting('didAppInstallPython', 'true');
     callback(`Python installed successfully: ${stdout}`);
+    const pythonInstalled = await isPythonInstalled(callback);
+    if (pythonInstalled) {
+      return InstallationInfo.Success;
+    }
+    return InstallationInfo.RestartRequired;
   } catch (error) {
-    callback(`Error executing Python installer: ${error}`);
+    const err = `Error executing Python installer: ${error}`;
+    callback(err);
+    throw new Error(err);
   }
 }
 
 async function checkAndInstallPython(
   callback: (message: string) => void,
-): Promise<void> {
+): Promise<InstallationInfo> {
   try {
     const isInstalled = await isPythonInstalled(callback);
     if (!isInstalled) {
       callback('Python not installed, installing now...');
-      await installPythonViaLocalBinary(pythonInstallerPath, callback);
-    } else {
-      callback('Python already installed');
+      return installPythonViaLocalBinary(pythonInstallerPath, callback);
     }
+    callback('Python already installed');
+    return InstallationInfo.AlreadyInstalled;
   } catch (error) {
     callback(`An error occurred while checking for Python: ${error}`);
     callback('Attempting to install Python now...');
-    await installPythonViaLocalBinary(pythonInstallerPath, callback).catch(
-      (err) => callback(`Failed to install Python: ${err}`),
-    );
+    return installPythonViaLocalBinary(pythonInstallerPath, callback);
   }
 }
 
 async function uninstallPythonViaLocalBinary(
   filepath: string,
   callback: (message: string) => void,
-): Promise<string> {
+): Promise<InstallationInfo> {
   callback('uninstallPythonViaLocalBinary');
   const didAppInstallPython = readSetting('didAppInstallPython');
   if (didAppInstallPython === 'false') {
     callback('Python was not installed by the app, skipping uninstall');
-    return 'skip Python uninstall';
+    return InstallationInfo.MissingDependency;
   }
 
   callback('Python was installed by the app, uninstalling now');
@@ -96,10 +102,11 @@ async function uninstallPythonViaLocalBinary(
     const { stdout } = await execAsync(command);
     updateSetting('didAppInstallPython', 'false');
     callback(`Python uninstalled successfully: ${stdout}`);
-    return 'successful Python uninstall';
+    return InstallationInfo.Success;
   } catch (error) {
-    callback(`Error uninstalling Python: ${error}`);
-    throw new Error('error Python uninstall');
+    const err = `Error uninstalling Python: ${error}`;
+    callback(err);
+    throw new Error(err);
   }
 }
 

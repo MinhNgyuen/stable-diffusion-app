@@ -15,7 +15,14 @@ export type Channels =
   | 'get-configuration'
   | 'get-configuration-reply';
 
-export type InstallationStatus = {
+export enum InstallationInfo {
+  Success = 'Successfully installed',
+  MissingDependency = 'Missing dependencies to install',
+  AlreadyInstalled = 'Already installed',
+  RestartRequired = 'Restart required',
+}
+
+export type DependencyStatus = {
   git: boolean;
   python: boolean;
   sdwebui: boolean;
