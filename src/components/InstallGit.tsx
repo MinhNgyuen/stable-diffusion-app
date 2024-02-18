@@ -33,31 +33,6 @@ async function uninstallGitViaLocalBinary(
   }
 }
 
-async function installGitViaLocalBinary(
-  filepath: string,
-  callback: (message: string) => void,
-): Promise<InstallationInfo> {
-  callback('Starting Git installation...');
-
-  // jrsoftware.org/ishelp/index.php?topic=setupcmdline
-  const command = `${filepath} /SILENT /LOG`;
-
-  try {
-    const { stdout } = await execAsync(command);
-    updateSetting('didAppInstallGit', 'true');
-    callback(`Git installed successfully: ${stdout}`);
-    const gitInstalled = await isGitInstalled(callback);
-    if (gitInstalled) {
-      return InstallationInfo.Success;
-    }
-    return InstallationInfo.RestartRequired;
-  } catch (error) {
-    const err = `Error executing Git installer: ${error}`;
-    callback(err);
-    throw new Error(err);
-  }
-}
-
 const isGitInstalled = (
   callback: (message: string) => void,
 ): Promise<boolean> => {
@@ -87,6 +62,31 @@ const isGitInstalled = (
   });
 };
 
+async function installGitViaLocalBinary(
+  filepath: string,
+  callback: (message: string) => void,
+): Promise<InstallationInfo> {
+  callback('Starting Git installation...');
+
+  // jrsoftware.org/ishelp/index.php?topic=setupcmdline
+  const command = `${filepath} /SILENT /LOG`;
+
+  try {
+    const { stdout } = await execAsync(command);
+    updateSetting('didAppInstallGit', 'true');
+    callback(`Git installed successfully: ${stdout}`);
+    const gitInstalled = await isGitInstalled(callback);
+    if (gitInstalled) {
+      return InstallationInfo.Success;
+    }
+    return InstallationInfo.RestartRequired;
+  } catch (error) {
+    const err = `Error executing Git installer: ${error}`;
+    callback(err);
+    throw new Error(err);
+  }
+}
+
 const checkAndInstallGit = async (
   callback: (message: string) => void,
 ): Promise<InstallationInfo> => {
@@ -94,10 +94,9 @@ const checkAndInstallGit = async (
     const isInstalled = await isGitInstalled(callback);
     if (!isInstalled) {
       return installGitViaLocalBinary(gitInstallerPath, callback);
-    } else {
-      callback('Git already installed');
-      return InstallationInfo.AlreadyInstalled;
     }
+    callback('Git already installed');
+    return InstallationInfo.AlreadyCompleted;
   } catch (error) {
     callback(`An error occurred while checking for Git: ${error}`);
     callback('Git not installed, installing now...');
