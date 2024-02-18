@@ -15,15 +15,6 @@ export type Channels =
   | 'get-configuration'
   | 'get-configuration-reply';
 
-export type InstallationStatus = {
-  git: boolean;
-  python: boolean;
-  sdwebui: boolean;
-  didAppInstallGit: boolean;
-  didAppInstallPython: boolean;
-  gpu: string[];
-};
-
 const electronHandler = {
   ipcRenderer: {
     sendMessage(channel: Channels, ...args: unknown[]) {
