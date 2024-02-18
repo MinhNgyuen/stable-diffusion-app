@@ -4,9 +4,9 @@ import { readSetting, updateSetting } from './SettingsFile';
 import { pythonInstallerPath } from '../main/constants';
 import { InstallationInfo } from '../shared/types';
 
-const isPythonInstalled = (
+async function isPythonInstalled(
   callback: (message: string) => void,
-): Promise<boolean> => {
+): Promise<boolean> {
   return new Promise((resolve) => {
     const requiredVersion = '3.10.6';
     const pythonCheckCommand = 'py';
@@ -37,7 +37,7 @@ const isPythonInstalled = (
       resolve(false);
     });
   });
-};
+}
 
 const execAsync = promisify(exec);
 
@@ -76,7 +76,7 @@ async function checkAndInstallPython(
       return installPythonViaLocalBinary(pythonInstallerPath, callback);
     }
     callback('Python already installed');
-    return InstallationInfo.AlreadyInstalled;
+    return InstallationInfo.AlreadyCompleted;
   } catch (error) {
     callback(`An error occurred while checking for Python: ${error}`);
     callback('Attempting to install Python now...');

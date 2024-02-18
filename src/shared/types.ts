@@ -1,8 +1,9 @@
 export enum InstallationInfo {
-  Success = 'Successfully installed',
-  MissingDependency = 'Missing dependencies to install',
-  AlreadyInstalled = 'Already installed',
+  Success = 'Successfully',
+  AlreadyCompleted = 'Already complete',
   RestartRequired = 'Restart required',
+  Fail = 'Failed',
+  MissingDependency = 'Missing dependencies',
 }
 
 export type DependencyStatus = {
