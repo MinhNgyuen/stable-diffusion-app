@@ -88,7 +88,6 @@ async function uninstallPythonViaLocalBinary(
   filepath: string,
   callback: (message: string) => void,
 ): Promise<InstallationInfo> {
-  callback('uninstallPythonViaLocalBinary');
   const didAppInstallPython = readSetting('didAppInstallPython');
   if (didAppInstallPython === 'false') {
     callback('Python was not installed by the app, skipping uninstall');

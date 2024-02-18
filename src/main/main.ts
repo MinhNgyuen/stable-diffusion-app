@@ -26,7 +26,7 @@ import {
   uninstallGitViaLocalBinary,
 } from '../components/InstallGit';
 import {
-  cloneStableDiffusionWebUI,
+  checkAndInstallStableDiffusionWebUI,
   deleteStableDiffusionWebUI,
   isStableDiffusionWebUIInstalled,
 } from '../components/InstallStableDiffusionWebUI';
@@ -49,33 +49,78 @@ const sendUpdates = (event: IpcMainEvent, channel: string, message: string) => {
   event.reply(channel, message);
 };
 
-const clearEnvironment = async (callback: (message: string) => void) => {
+const processInstallationInfo = (
+  gitInstallInfo: InstallationInfo,
+  pythonInstallInfo: InstallationInfo,
+  sdInstallInfo: InstallationInfo,
+  callback: (message: string) => void,
+): InstallationInfo => {
+  if (
+    gitInstallInfo === InstallationInfo.RestartRequired ||
+    pythonInstallInfo === InstallationInfo.RestartRequired ||
+    sdInstallInfo === InstallationInfo.RestartRequired
+  ) {
+    app.relaunch();
+    app.exit(0);
+    return InstallationInfo.RestartRequired;
+  }
+  if (
+    gitInstallInfo === InstallationInfo.Fail ||
+    gitInstallInfo === InstallationInfo.MissingDependency ||
+    pythonInstallInfo === InstallationInfo.Fail ||
+    pythonInstallInfo === InstallationInfo.MissingDependency ||
+    sdInstallInfo === InstallationInfo.Fail ||
+    sdInstallInfo === InstallationInfo.MissingDependency
+  ) {
+    return InstallationInfo.Fail;
+  }
+  if (
+    (gitInstallInfo === InstallationInfo.Success ||
+      gitInstallInfo === InstallationInfo.AlreadyCompleted) &&
+    (pythonInstallInfo === InstallationInfo.Success ||
+      pythonInstallInfo === InstallationInfo.AlreadyCompleted) &&
+    (sdInstallInfo === InstallationInfo.Success ||
+      sdInstallInfo === InstallationInfo.AlreadyCompleted)
+  ) {
+    return InstallationInfo.Success;
+  }
+  const message = `Unusual installation status -> git: ${gitInstallInfo}, python: ${pythonInstallInfo}, sdwebui: ${sdInstallInfo}`;
+  callback(message);
+  return InstallationInfo.Success;
+};
+
+const clearEnvironment = async (
+  callback: (message: string) => void,
+): Promise<InstallationInfo> => {
   console.log('starting Clear Environment');
-  // uninstallChocolatey());
   const res: string[] = [];
   const errs: Error[] = [];
-  await deleteStableDiffusionWebUI(callback)
-    .then((msg: string) => {
-      res.push(msg);
-    })
-    .catch((err: Error) => {
+  const sdUninstallInfo = await deleteStableDiffusionWebUI(callback).catch(
+    (err: Error) => {
       errs.push(err);
-    });
-  await uninstallPythonViaLocalBinary(pythonInstallerPath, callback)
-    .then((msg: InstallationInfo) => {
-      res.push(msg);
-    })
-    .catch((err: Error) => {
+      return InstallationInfo.Fail;
+    },
+  );
+  const gitUninstallInfo = await uninstallGitViaLocalBinary(callback).catch(
+    (err: Error) => {
       errs.push(err);
-    });
-  await uninstallGitViaLocalBinary(callback)
-    .then((msg: string) => {
-      res.push(msg);
-    })
-    .catch((err: Error) => {
-      errs.push(err);
-    });
+      return InstallationInfo.Fail;
+    },
+  );
+  const pythonUninstallInfo = await uninstallPythonViaLocalBinary(
+    pythonInstallerPath,
+    callback,
+  ).catch((err: Error) => {
+    errs.push(err);
+    return InstallationInfo.Fail;
+  });
   callback(res.join('\n'));
+  return processInstallationInfo(
+    gitUninstallInfo,
+    pythonUninstallInfo,
+    sdUninstallInfo,
+    callback,
+  );
 };
 
 const openUserDataInExplorer = () => {
@@ -121,26 +166,29 @@ ipcMain.on('ipc-example', async (event, arg) => {
 });
 
 ipcMain.on('install-stable-diffusion', async (event) => {
-  await checkAndInstallGit((message: string) => {
+  const gitInstallInfo = await checkAndInstallGit((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
-  await checkAndInstallPython((message: string) =>
+  const pythonInstallInfo = await checkAndInstallPython((message: string) =>
     sendUpdates(event, 'execution-messages', message),
   );
-  await cloneStableDiffusionWebUI((message: string) =>
-    sendUpdates(event, 'execution-messages', message),
+  const sdInstallInfo = await checkAndInstallStableDiffusionWebUI(
+    (message: string) => sendUpdates(event, 'execution-messages', message),
   );
-  event.reply('install-stable-diffusion-reply', 'Installation complete');
+  const processedInfo = processInstallationInfo(
+    gitInstallInfo,
+    pythonInstallInfo,
+    sdInstallInfo,
+    (message: string) => sendUpdates(event, 'execution-messages', message),
+  );
+
+  event.reply('install-stable-diffusion-reply', processedInfo);
 });
 
 ipcMain.on('get-configuration', async (event) => {
-  const gitInstalled = await isGitInstalled((message: string) => {
-    sendUpdates(event, 'execution-messages', message);
-  });
+  const gitInstalled = await isGitInstalled(() => {});
   const didAppInstallGit = readSetting('didAppInstallGit');
-  const pythonInstalled = await isPythonInstalled((message: string) =>
-    sendUpdates(event, 'execution-messages', message),
-  );
+  const pythonInstalled = await isPythonInstalled(() => {});
   const didAppInstallPython = readSetting('didAppInstallPython');
   const repoCloned = await isStableDiffusionWebUIInstalled();
 
@@ -155,6 +203,12 @@ ipcMain.on('get-configuration', async (event) => {
     didAppInstallPython: didAppInstallPython === 'true',
   };
 
+  sendUpdates(
+    event,
+    'execution-messages',
+    `Git is installed: ${gitInstalled}\nPython is installed: ${pythonInstalled}\nStable Diffusion WebUI is installed: ${repoCloned}\nGPUs detected: ${gpuInfo}`,
+  );
+
   event.reply('get-configuration-reply', status);
 });
 
@@ -163,13 +217,10 @@ ipcMain.on('launch-stable-diffusion', async () => {
 });
 
 ipcMain.on('clear-environment', async (event) => {
-  await clearEnvironment((message: string) => {
+  const uninstallInfo = await clearEnvironment((message: string) => {
     sendUpdates(event, 'execution-messages', message);
   });
-  event.reply(
-    'clear-environment-reply',
-    'received message to clear environment',
-  );
+  event.reply('clear-environment-reply', uninstallInfo);
 });
 
 ipcMain.on('view-app-data', async (event) => {
