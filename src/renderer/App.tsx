@@ -2,9 +2,9 @@ import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
 import { useEffect, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
-import { DependencyStatus } from '../main/preload';
 import GPUWarningDrawer from '../components/WarningDrawer';
 import GPUWarning from '../components/GpuWarning';
+import { DependencyStatus } from '../shared/types';
 
 function Hello() {
   const [gpuInfo, setGpuInfo] = useState<string[]>([]);

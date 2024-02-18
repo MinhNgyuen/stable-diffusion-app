@@ -2,7 +2,7 @@ import { exec, spawn } from 'child_process';
 import { promisify } from 'util';
 import { readSetting, updateSetting } from './SettingsFile';
 import { pythonInstallerPath } from '../main/constants';
-import { InstallationInfo } from '../main/preload';
+import { InstallationInfo } from '../shared/types';
 
 const isPythonInstalled = (
   callback: (message: string) => void,

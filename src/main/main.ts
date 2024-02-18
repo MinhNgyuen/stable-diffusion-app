@@ -31,7 +31,7 @@ import {
   isStableDiffusionWebUIInstalled,
 } from '../components/InstallStableDiffusionWebUI';
 import { pythonInstallerPath, sdwebuiPath } from './constants';
-import { InstallationInfo, DependencyStatus } from './preload';
+import { InstallationInfo, DependencyStatus } from '../shared/types';
 import getGpuInfo from '../components/GetGpu';
 import { readSetting } from '../components/SettingsFile';
 

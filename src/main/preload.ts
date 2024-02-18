@@ -15,22 +15,6 @@ export type Channels =
   | 'get-configuration'
   | 'get-configuration-reply';
 
-export enum InstallationInfo {
-  Success = 'Successfully installed',
-  MissingDependency = 'Missing dependencies to install',
-  AlreadyInstalled = 'Already installed',
-  RestartRequired = 'Restart required',
-}
-
-export type DependencyStatus = {
-  git: boolean;
-  python: boolean;
-  sdwebui: boolean;
-  didAppInstallGit: boolean;
-  didAppInstallPython: boolean;
-  gpu: string[];
-};
-
 const electronHandler = {
   ipcRenderer: {
     sendMessage(channel: Channels, ...args: unknown[]) {
