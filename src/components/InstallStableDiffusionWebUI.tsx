@@ -2,6 +2,7 @@ import { promises as fs } from 'fs';
 import simpleGit from 'simple-git';
 import sudo from 'sudo-prompt';
 import { webuiUserBatPath, sdwebuiPath } from '../main/constants';
+import { InstallationInfo } from '../shared/types';
 
 const isStableDiffusionWebUIInstalled = async (): Promise<boolean> => {
   try {
@@ -15,25 +16,47 @@ const isStableDiffusionWebUIInstalled = async (): Promise<boolean> => {
   }
 };
 
-const cloneStableDiffusionWebUI = async (
+async function cloneStableDiffusionWebUI(
   callback: (message: string) => void,
-) => {
-  return new Promise((resolve, reject) => {
-    try {
-      simpleGit().clone(
-        'https://github.com/AUTOMATIC1111/stable-diffusion-webui',
-        sdwebuiPath,
-      );
-      console.log('Installed stable diffusion web ui');
+): Promise<InstallationInfo> {
+  try {
+    simpleGit().clone(
+      'https://github.com/AUTOMATIC1111/stable-diffusion-webui',
+      sdwebuiPath,
+    );
+    const sdInstalled = await isStableDiffusionWebUIInstalled();
+    if (sdInstalled) {
       callback('Installed stable diffusion web ui');
-      resolve('Installed stable diffusion web ui');
-    } catch (error) {
-      console.error('Failed to clone stable diffusion web ui:', error);
-      callback(`Failed to clone stable diffusion web ui: ${error}`);
-      reject(new Error(`Failed to clone stable diffusion web ui: ${error}`));
+      return InstallationInfo.Success;
     }
-  });
-};
+    callback('Failed to install stable diffusion web ui');
+    return InstallationInfo.Fail;
+  } catch (error) {
+    const err = `Failed to install stable diffusion web ui: ${error}`;
+    callback(err);
+    throw new Error(err);
+  }
+}
+
+async function checkAndInstallStableDiffusionWebUI(
+  callback: (message: string) => void,
+): Promise<InstallationInfo> {
+  try {
+    const isInstalled = await isStableDiffusionWebUIInstalled();
+    if (!isInstalled) {
+      callback('StableDiffusionWebUI not installed, installing now...');
+      return cloneStableDiffusionWebUI(callback);
+    }
+    callback('StableDiffusionWebUI already installed');
+    return InstallationInfo.AlreadyCompleted;
+  } catch (error) {
+    callback(
+      `An error occurred while checking for StableDiffusionWebUI: ${error}`,
+    );
+    callback('Attempting to install StableDiffusionWebUI now...');
+    return cloneStableDiffusionWebUI(callback);
+  }
+}
 
 const deleteStableDiffusionWebUI = (callback: (message: string) => void) => {
   return new Promise(
@@ -70,6 +93,6 @@ const deleteStableDiffusionWebUI = (callback: (message: string) => void) => {
 
 export {
   isStableDiffusionWebUIInstalled,
-  cloneStableDiffusionWebUI,
+  checkAndInstallStableDiffusionWebUI,
   deleteStableDiffusionWebUI,
 };
