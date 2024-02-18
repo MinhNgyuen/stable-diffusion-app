@@ -1,8 +1,12 @@
 import { promises as fs } from 'fs';
 import simpleGit from 'simple-git';
-import sudo from 'sudo-prompt';
+import { promisify } from 'util';
+import { exec } from 'child_process';
+
 import { webuiUserBatPath, sdwebuiPath } from '../main/constants';
 import { InstallationInfo } from '../shared/types';
+
+const execAsync = promisify(exec);
 
 const isStableDiffusionWebUIInstalled = async (): Promise<boolean> => {
   try {
@@ -20,7 +24,8 @@ async function cloneStableDiffusionWebUI(
   callback: (message: string) => void,
 ): Promise<InstallationInfo> {
   try {
-    simpleGit().clone(
+    callback('Cloning stable diffusion web ui...');
+    await simpleGit().clone(
       'https://github.com/AUTOMATIC1111/stable-diffusion-webui',
       sdwebuiPath,
     );
@@ -58,38 +63,26 @@ async function checkAndInstallStableDiffusionWebUI(
   }
 }
 
-const deleteStableDiffusionWebUI = (callback: (message: string) => void) => {
-  return new Promise(
-    (resolve: (msg: string) => void, reject: (err: Error) => void) => {
-      const deleteCommand = `rmdir /s /q ${sdwebuiPath}`;
-      sudo.exec(
-        deleteCommand,
-        {
-          name: 'Stable diffusion app',
-          icns: 'assets/icon.icns', // (optional) path to .icns file
-        },
-        (error, stdout, stderr) => {
-          if (error) {
-            callback(`Error removing stable diffusion web ui: ${error}`);
-            reject(
-              new Error(`Error removing stable diffusion web ui: ${error}`),
-            );
-            return;
-          }
-          if (stderr) {
-            callback(`Stderr removing stable diffusion web ui: ${stderr}`);
-            reject(
-              new Error(`Stderr removing stable diffusion web ui: ${stderr}`),
-            );
-            return;
-          }
-          callback(`Stable diffusion web ui removed successfully ${stdout}`);
-          resolve(`Stable diffusion web ui removed successfully ${stdout}`);
-        },
-      );
-    },
-  );
-};
+async function deleteStableDiffusionWebUI(
+  callback: (message: string) => void,
+): Promise<InstallationInfo> {
+  callback('Removing stable diffusion web ui...');
+  const deleteCommand = `rmdir /s /q ${sdwebuiPath}`;
+
+  try {
+    const { stdout } = await execAsync(deleteCommand);
+    callback(`Stable diffusion web ui removed successfully: ${stdout}`);
+    const sdInstalled = await isStableDiffusionWebUIInstalled();
+    if (!sdInstalled) {
+      return InstallationInfo.Success;
+    }
+    return InstallationInfo.Fail;
+  } catch (error) {
+    const err = `Error deleting stable diffusion web ui: ${error}`;
+    callback(err);
+    throw new Error(err);
+  }
+}
 
 export {
   isStableDiffusionWebUIInstalled,
