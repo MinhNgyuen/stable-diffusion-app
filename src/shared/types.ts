@@ -1,6 +1,6 @@
 export enum InstallationInfo {
-  Success = 'Successfully',
-  AlreadyCompleted = 'Already complete',
+  Success = 'Succeeded',
+  AlreadyCompleted = 'Not required. Already completed',
   RestartRequired = 'Restart required',
   Fail = 'Failed',
   MissingDependency = 'Missing dependencies',
