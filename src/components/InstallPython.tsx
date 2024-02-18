@@ -7,7 +7,7 @@ import { InstallationInfo } from '../shared/types';
 const isPythonInstalled = (
   callback: (message: string) => void,
 ): Promise<boolean> => {
-  return new Promise((resolve, reject) => {
+  return new Promise((resolve) => {
     const requiredVersion = '3.10.6';
     const pythonCheckCommand = 'py';
     const pythonCheckArgs = ['-3.10', '--version'];
@@ -34,7 +34,7 @@ const isPythonInstalled = (
 
     checkProcess.on('error', (error) => {
       callback(`Failed to start subprocess: ${error}`);
-      reject(error);
+      resolve(false);
     });
   });
 };
