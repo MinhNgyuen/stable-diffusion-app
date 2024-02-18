@@ -10,7 +10,6 @@ const execAsync = promisify(exec);
 async function uninstallGitViaLocalBinary(
   callback: (message: string) => void,
 ): Promise<InstallationInfo> {
-  callback('uninstallGitViaLocalBinary');
   const didAppInstallGit = readSetting('didAppInstallGit');
   if (didAppInstallGit === 'false') {
     callback('Git was not installed by the app, skipping uninstall');

@@ -1,10 +1,10 @@
 import { MemoryRouter as Router, Routes, Route } from 'react-router-dom';
-import { useEffect, useState } from 'react';
+import { useEffect, useRef, useState } from 'react';
 import icon from '../../assets/icon.svg';
 import './App.css';
 import GPUWarningDrawer from '../components/WarningDrawer';
 import GPUWarning from '../components/GpuWarning';
-import { DependencyStatus } from '../shared/types';
+import { DependencyStatus, InstallationInfo } from '../shared/types';
 
 function Hello() {
   const [gpuInfo, setGpuInfo] = useState<string[]>([]);
@@ -13,12 +13,30 @@ function Hello() {
   const [isInstalled, setIsInstalled] = useState<boolean>(false);
   const [hasClearableData, setHasClearableData] = useState<boolean>(false);
 
+  const messagesEndRef = useRef<HTMLTextAreaElement>(null);
+
+  useEffect(() => {
+    if (messagesEndRef.current) {
+      messagesEndRef.current.scrollTop = messagesEndRef.current.scrollHeight;
+    }
+  }, [installationMessages]);
+
+  const writeInstallationMessage = (message: string) => {
+    setInstallationMessages(
+      (prevMessages: string) => `${prevMessages}\n${message}`,
+    );
+  };
+
+  const prepareInstallationMessages = (functionName: string) => {
+    writeInstallationMessage(`\n---------- ${functionName} ----------\n`);
+  };
+
   const getConfiguration = () => {
     window.electron.ipcRenderer.sendMessage('get-configuration');
   };
 
-  const beginExecution = () => {
-    setInstallationMessages('');
+  const beginExecution = (functionName: string) => {
+    prepareInstallationMessages(functionName);
     setIsInstalling(true);
   };
 
@@ -27,22 +45,22 @@ function Hello() {
   };
 
   const handleInstallStableDiffusion = () => {
-    beginExecution();
+    beginExecution('Install Stable Diffusion');
     window.electron.ipcRenderer.sendMessage('install-stable-diffusion');
   };
 
   const handleLaunchStableDiffusion = () => {
-    setInstallationMessages('');
+    prepareInstallationMessages('Launch Stable Diffusion');
     window.electron.ipcRenderer.sendMessage('launch-stable-diffusion');
   };
 
-  const handleClearEnvironment = () => {
-    setInstallationMessages('');
+  const handleClearData = () => {
+    beginExecution('Clear data');
     window.electron.ipcRenderer.sendMessage('clear-environment');
   };
 
   const handleViewAppData = () => {
-    setInstallationMessages('');
+    prepareInstallationMessages('View data');
     window.electron.ipcRenderer.sendMessage('view-app-data');
   };
 
@@ -67,8 +85,12 @@ function Hello() {
 
     const unsubscribeInstall = window.electron.ipcRenderer.on(
       'install-stable-diffusion-reply',
-      () => {
+      (data) => {
         completeExecution();
+        const installationInfo = data as InstallationInfo;
+        writeInstallationMessage(
+          `Stable diffusion install status: ${installationInfo}`,
+        );
         getConfiguration();
       },
     );
@@ -76,15 +98,19 @@ function Hello() {
     const unsubscribeProgress = window.electron.ipcRenderer.on(
       'execution-messages',
       (message) => {
-        setInstallationMessages(
-          (prevMessages: string) => `${prevMessages}\n${message}`,
-        );
+        const msg = message as string;
+        writeInstallationMessage(msg);
       },
     );
 
     const unsubscribeClearEnvironment = window.electron.ipcRenderer.on(
       'clear-environment-reply',
-      () => {
+      (data) => {
+        completeExecution();
+        const installationInfo = data as InstallationInfo;
+        writeInstallationMessage(
+          `Stable diffusion uninstall status: ${installationInfo}`,
+        );
         getConfiguration();
       },
     );
@@ -136,7 +162,7 @@ function Hello() {
           <>
             <button
               type="button"
-              onClick={handleClearEnvironment}
+              onClick={handleClearData}
               disabled={isInstalling}
             >
               Clear data
@@ -153,7 +179,7 @@ function Hello() {
       </div>
 
       <div className="installation-messages">
-        <textarea readOnly value={installationMessages} />
+        <textarea readOnly value={installationMessages} ref={messagesEndRef} />
       </div>
       <br />
       <div>
